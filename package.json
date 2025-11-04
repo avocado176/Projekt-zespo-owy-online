@@ -10,7 +10,10 @@
   "dependencies": {
     "express": "^5.1.0",
     "cors": "^2.8.5",
-    "pg": "^8.14.1"
+    "pg": "^8.14.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^16.4.5"
   },
   "engines": {
     "node": ">=14.0.0"
