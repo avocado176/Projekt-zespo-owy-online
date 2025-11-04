@@ -37,6 +37,13 @@
             border-bottom: 2px solid #3498db;
             padding-bottom: 10px;
         }
+        .auth-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
         .form-section {
             background: #f8f9fa;
             padding: 20px;
@@ -126,54 +133,176 @@
         .cancel-btn:hover {
             background: #7f8c8d !important;
         }
+        .auth-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .auth-buttons button {
+            flex: 1;
+        }
+        .user-info {
+            background: #2ecc71;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logout-btn {
+            background: #e74c3c !important;
+            width: auto !important;
+            padding: 8px 16px !important;
+        }
+        .logout-btn:hover {
+            background: #c0392b !important;
+        }
+        .auth-links {
+            margin-top: 15px;
+            text-align: center;
+        }
+        .auth-links a {
+            color: #3498db;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
+        .hidden {
+            display: none;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .stats-card h3 {
+            margin: 0 0 15px 0;
+            font-size: 1.4em;
+        }
+        .stats-card p {
+            margin: 10px 0;
+            font-size: 1.1em;
+        }
+        .public-stats {
+            margin-bottom: 30px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🚗 System zarządzania samochodami</h1>
         
-        <div class="form-section">
-            <h2>Dodaj nowy samochód</h2>
-            <form id="carForm">
-                <div class="form-group">
-                    <label for="brand">Marka:</label>
-                    <input type="text" id="brand" placeholder="Na przykład: Toyota" required>
+        <!-- Authentication Section -->
+        <div id="authSection" class="auth-section">
+            <!-- Login Form -->
+            <div id="loginForm">
+                <h2>Zaloguj się</h2>
+                <form id="loginFormElement">
+                    <div class="form-group">
+                        <label for="loginUsername">Nazwa użytkownika:</label>
+                        <input type="text" id="loginUsername" placeholder="Wprowadź nazwę użytkownika" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Hasło:</label>
+                        <input type="password" id="loginPassword" placeholder="Wprowadź hasło" required>
+                    </div>
+                    <button type="submit">🔐 Zaloguj się</button>
+                </form>
+                <div class="auth-links">
+                    <p>Nie masz konta? <a id="showRegister">Zarejestruj się</a></p>
                 </div>
-                <div class="form-group">
-                    <label for="model">Model:</label>
-                    <input type="text" id="model" placeholder="Na przykład: Camry" required>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" class="hidden">
+                <h2>Zarejestruj się</h2>
+                <form id="registerFormElement">
+                    <div class="form-group">
+                        <label for="registerUsername">Nazwa użytkownika:</label>
+                        <input type="text" id="registerUsername" placeholder="Wprowadź nazwę użytkownika" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">Email:</label>
+                        <input type="email" id="registerEmail" placeholder="Wprowadź email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Hasło:</label>
+                        <input type="password" id="registerPassword" placeholder="Wprowadź hasło (min. 6 znaków)" required>
+                    </div>
+                    <button type="submit">📝 Zarejestruj się</button>
+                </form>
+                <div class="auth-links">
+                    <p>Masz już konto? <a id="showLogin">Zaloguj się</a></p>
                 </div>
-                <div class="form-group">
-                    <label for="year">Rok produkcji:</label>
-                    <input type="number" id="year" placeholder="2023" min="1900" max="2030" required>
-                </div>
-                <div class="form-group">
-                    <label for="price">Cena ($):</label>
-                    <input type="number" id="price" placeholder="25000.00" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label for="registrationDate">Data rejestracji:</label>
-                    <input type="date" id="registrationDate">
-                </div>
-                <div class="form-group">
-                    <label for="mileage">Przebieg (km):</label>
-                    <input type="number" id="mileage" placeholder="50000" min="0" required>
-                </div>
-                <div class="form-group">
-                    <label for="fuelType">Rodzaj paliwa:</label>
-                    <input type="text" id="fuelType" placeholder="Na przykład: Diesel" required>
-                </div>
-                <div class="form-buttons">
-                    <button type="submit">➕ Dodaj samochód</button>
-                    <button type="button" class="cancel-btn" onclick="resetForm()">❌ Anuluj</button>
-                </div>
-            </form>
+            </div>
         </div>
 
-        <div class="cars-section">
-            <h2>Lista samochodów</h2>
-            <div id="carsList" class="cars-grid">
-                <!-- Tutaj będą wyświetlane samochody -->
+        <!-- PUBLIC STATISTICS - pokazywane gdy użytkownik nie jest zalogowany -->
+        <div id="publicStats" class="public-stats">
+            <!-- Tutaj będą wyświetlane publiczne statystyki -->
+        </div>
+
+        <!-- Main App Content (visible after login) -->
+        <div id="appContent" class="hidden">
+            <!-- User Info -->
+            <div class="user-info">
+                <span id="userInfo">Witaj, użytkowniku!</span>
+                <button id="logoutBtn" class="logout-btn">🚪 Wyloguj się</button>
+            </div>
+
+            <!-- Car Management Forms -->
+            <div class="form-section">
+                <h2>Dodaj nowy samochód</h2>
+                <form id="carForm">
+                    <div class="form-group">
+                        <label for="brand">Marka:</label>
+                        <input type="text" id="brand" placeholder="Na przykład: Toyota" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="model">Model:</label>
+                        <input type="text" id="model" placeholder="Na przykład: Camry" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="year">Rok produkcji:</label>
+                        <input type="number" id="year" placeholder="2023" min="1900" max="2030" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="price">Cena ($):</label>
+                        <input type="number" id="price" placeholder="25000.00" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="registrationDate">Data rejestracji:</label>
+                        <input type="date" id="registrationDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="mileage">Przebieg (km):</label>
+                        <input type="number" id="mileage" placeholder="50000" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="fuelType">Rodzaj paliwa:</label>
+                        <input type="text" id="fuelType" placeholder="Na przykład: Diesel" required>
+                    </div>
+                    <div class="form-buttons">
+                        <button type="submit">➕ Dodaj samochód</button>
+                        <button type="button" class="cancel-btn" onclick="resetForm()">❌ Anuluj</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Cars List -->
+            <div class="cars-section">
+                <h2>Lista samochodów</h2>
+                <div id="carsList" class="cars-grid">
+                    <!-- Tutaj będą wyświetlane samochody -->
+                </div>
             </div>
         </div>
     </div>
