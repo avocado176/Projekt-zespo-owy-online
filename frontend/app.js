@@ -7,6 +7,100 @@ let currentEditingId = null;
 let currentUser = null;
 let authToken = localStorage.getItem('authToken');
 
+// Funkcje walidacji frontend
+function validateCarForm(carData) {
+    const errors = {};
+
+    // Walidacja marki
+    if (!carData.brand || carData.brand.trim().length === 0) {
+        errors.brand = 'Marka jest wymagana';
+    } else if (carData.brand.length < 2 || carData.brand.length > 50) {
+        errors.brand = 'Marka musi mieć od 2 do 50 znaków';
+    }
+
+    // Walidacja modelu
+    if (!carData.model || carData.model.trim().length === 0) {
+        errors.model = 'Model jest wymagany';
+    } else if (carData.model.length < 1 || carData.model.length > 50) {
+        errors.model = 'Model musi mieć od 1 do 50 znaków';
+    }
+
+    // Walidacja roku
+    if (!carData.year) {
+        errors.year = 'Rok jest wymagany';
+    } else if (carData.year < 1900 || carData.year > new Date().getFullYear() + 1) {
+        errors.year = `Rok musi być między 1900 a ${new Date().getFullYear() + 1}`;
+    }
+
+    // Walidacja ceny
+    if (carData.price && carData.price < 0) {
+        errors.price = 'Cena nie może być ujemna';
+    }
+
+    // Walidacja przebiegu
+    if (!carData.mileage && carData.mileage !== 0) {
+        errors.mileage = 'Przebieg jest wymagany';
+    } else if (carData.mileage < 0) {
+        errors.mileage = 'Przebieg nie może być ujemny';
+    }
+
+    // Walidacja typu paliwa
+    if (!carData.fuelType || carData.fuelType.trim().length === 0) {
+        errors.fuelType = 'Rodzaj paliwa jest wymagany';
+    }
+
+    // Walidacja daty rejestracji
+    if (carData.registrationDate) {
+        const registrationDate = new Date(carData.registrationDate);
+        const today = new Date();
+        if (registrationDate > today) {
+            errors.registrationDate = 'Data rejestracji nie może być z przyszłości';
+        }
+    }
+
+    return errors;
+}
+
+// Funkcja wyświetlania błędów
+function displayFormErrors(errors) {
+    // Ukryj wszystkie istniejące błędy i resetuj style
+    document.querySelectorAll('.error-message').forEach(el => {
+        el.style.display = 'none';
+        el.textContent = '';
+    });
+    document.querySelectorAll('input').forEach(input => {
+        input.classList.remove('error');
+    });
+
+    // Pokaż nowe błędy i styluj inputy
+    Object.keys(errors).forEach(field => {
+        const errorElement = document.getElementById(`${field}Error`);
+        const inputElement = document.getElementById(field);
+        
+        if (errorElement) {
+            errorElement.textContent = errors[field];
+            errorElement.style.display = 'block';
+        }
+        
+        if (inputElement) {
+            inputElement.classList.add('error');
+        }
+    });
+
+    return Object.keys(errors).length === 0;
+}
+
+// Funkcja ukrywania błędów
+function clearFormErrors() {
+    document.querySelectorAll('.error-message').forEach(el => {
+        el.style.display = 'none';
+        el.textContent = '';
+    });
+    document.querySelectorAll('input').forEach(input => {
+        input.classList.remove('error');
+    });
+}
+
 // Załaduj publiczne statystyki
 async function loadPublicStats() {
     try {
@@ -201,6 +295,8 @@ async function editCar(carId) {
         
         document.getElementById('brand').scrollIntoView({ behavior: 'smooth' });
         
+        clearFormErrors(); // Czyść błędy przy edycji
+        
     } catch (error) {
         console.error('Błąd edycji:', error);
         showError('Nie udało się załadować danych samochodu: ' + error.message);
@@ -219,16 +315,17 @@ document.getElementById('carForm').addEventListener('submit', async (e) => {
     const carData = {
         brand: document.getElementById('brand').value.trim(),
         model: document.getElementById('model').value.trim(),
-        year: parseInt(document.getElementById('year').value),
+        year: document.getElementById('year').value ? parseInt(document.getElementById('year').value) : null,
         price: document.getElementById('price').value ? parseFloat(document.getElementById('price').value) : null,
         registrationDate: document.getElementById('registrationDate').value || null,
-        mileage: parseInt(document.getElementById('mileage').value),
+        mileage: document.getElementById('mileage').value ? parseInt(document.getElementById('mileage').value) : null,
         fuelType: document.getElementById('fuelType').value.trim()
     };
 
-    if (!carData.brand || !carData.model || !carData.year || !carData.mileage || !carData.fuelType) {
-        showError('Proszę wypełnić obowiązkowe pola: marka, model, rok, przebieg, typ paliwa');
-        return;
+    // Frontend walidacja
+    const frontendErrors = validateCarForm(carData);
+    if (!displayFormErrors(frontendErrors)) {
+        return; // Stop jeśli są błędy
     }
 
     try {
@@ -245,6 +342,17 @@ document.getElementById('carForm').addEventListener('submit', async (e) => {
 
         if (!response.ok) {
             const errorData = await response.json();
+            
+            // Obsługa błędów z backendu
+            if (errorData.fieldErrors && Array.isArray(errorData.fieldErrors)) {
+                const backendErrors = {};
+                errorData.fieldErrors.forEach(error => {
+                    backendErrors[error.field] = error.message;
+                });
+                displayFormErrors(backendErrors);
+                return;
+            }
+            
             throw new Error(errorData.error || 'Błąd serwera');
         }
 
@@ -324,6 +432,7 @@ function resetForm() {
     currentEditingId = null;
     document.querySelector('button[type="submit"]').textContent = '➕ Dodaj samochód';
     document.querySelector('h2').textContent = 'Dodaj nowy samochód';
+    clearFormErrors(); // Czyść błędy przy resecie
 }
 
 // Funkcje dla komunikatów
