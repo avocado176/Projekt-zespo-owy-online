@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "jest --verbose",
+    "test:simple": "node test-runner.js"
   },
   "dependencies": {
     "express": "^5.1.0",
@@ -14,6 +16,9 @@
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
     "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
   },
   "engines": {
     "node": ">=14.0.0"
