@@ -26,16 +26,179 @@ function authenticateToken(req, res, next) {
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ error: 'Access denied. Token required.' });
+    return res.status(401).json({ 
+      timestamp: new Date().toISOString(),
+      status: 401,
+      error: 'Unauthorized',
+      message: 'Access denied. Token required.'
+    });
   }
 
   jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret', (err, user) => {
     if (err) {
-      return res.status(403).json({ error: 'Invalid token.' });
+      return res.status(403).json({ 
+        timestamp: new Date().toISOString(),
+        status: 403,
+        error: 'Forbidden',
+        message: 'Invalid token.'
+      });
     }
     req.user = user;
     next();
   });
+}
+
+// Funkcja walidacji samochodu
+function validateCar(carData) {
+  const errors = [];
+
+  // Walidacja marki
+  if (!carData.brand || carData.brand.trim().length === 0) {
+    errors.push({ 
+      field: 'brand', 
+      code: 'REQUIRED', 
+      message: 'Marka jest wymagana' 
+    });
+  } else if (carData.brand.length < 2 || carData.brand.length > 50) {
+    errors.push({ 
+      field: 'brand', 
+      code: 'INVALID_LENGTH', 
+      message: 'Marka musi mieć od 2 do 50 znaków' 
+    });
+  }
+
+  // Walidacja modelu
+  if (!carData.model || carData.model.trim().length === 0) {
+    errors.push({ 
+      field: 'model', 
+      code: 'REQUIRED', 
+      message: 'Model jest wymagany' 
+    });
+  } else if (carData.model.length < 1 || carData.model.length > 50) {
+    errors.push({ 
+      field: 'model', 
+      code: 'INVALID_LENGTH', 
+      message: 'Model musi mieć od 1 do 50 znaków' 
+    });
+  }
+
+  // Walidacja roku
+  if (!carData.year) {
+    errors.push({ 
+      field: 'year', 
+      code: 'REQUIRED', 
+      message: 'Rok jest wymagany' 
+    });
+  } else if (carData.year < 1900 || carData.year > new Date().getFullYear() + 1) {
+    errors.push({ 
+      field: 'year', 
+      code: 'INVALID_YEAR', 
+      message: `Rok musi być między 1900 a ${new Date().getFullYear() + 1}` 
+    });
+  }
+
+  // Walidacja ceny
+  if (carData.price && carData.price < 0) {
+    errors.push({ 
+      field: 'price', 
+      code: 'INVALID_PRICE', 
+      message: 'Cena nie może być ujemna' 
+    });
+  }
+
+  // Walidacja przebiegu
+  if (!carData.mileage && carData.mileage !== 0) {
+    errors.push({ 
+      field: 'mileage', 
+      code: 'REQUIRED', 
+      message: 'Przebieg jest wymagany' 
+    });
+  } else if (carData.mileage < 0) {
+    errors.push({ 
+      field: 'mileage', 
+      code: 'INVALID_MILEAGE', 
+      message: 'Przebieg nie może być ujemny' 
+    });
+  }
+
+  // Walidacja typu paliwa
+  if (!carData.fuelType || carData.fuelType.trim().length === 0) {
+    errors.push({ 
+      field: 'fuelType', 
+      code: 'REQUIRED', 
+      message: 'Rodzaj paliwa jest wymagany' 
+    });
+  }
+
+  // Walidacja daty rejestracji
+  if (carData.registrationDate) {
+    const registrationDate = new Date(carData.registrationDate);
+    const today = new Date();
+    if (registrationDate > today) {
+      errors.push({ 
+        field: 'registrationDate', 
+        code: 'FUTURE_DATE', 
+        message: 'Data rejestracji nie może być z przyszłości' 
+      });
+    }
+  }
+
+  return errors;
+}
+
+// Funkcja walidacji użytkownika
+function validateUser(userData) {
+  const errors = [];
+
+  // Walidacja nazwy użytkownika
+  if (!userData.username || userData.username.trim().length === 0) {
+    errors.push({ 
+      field: 'username', 
+      code: 'REQUIRED', 
+      message: 'Nazwa użytkownika jest wymagana' 
+    });
+  } else if (userData.username.length < 3 || userData.username.length > 50) {
+    errors.push({ 
+      field: 'username', 
+      code: 'INVALID_LENGTH', 
+      message: 'Nazwa użytkownika musi mieć od 3 do 50 znaków' 
+    });
+  }
+
+  // Walidacja email
+  if (!userData.email || userData.email.trim().length === 0) {
+    errors.push({ 
+      field: 'email', 
+      code: 'REQUIRED', 
+      message: 'Email jest wymagany' 
+    });
+  } else {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(userData.email)) {
+      errors.push({ 
+        field: 'email', 
+        code: 'INVALID_FORMAT', 
+        message: 'Niepoprawny format email' 
+      });
+    }
+  }
+
+  // Walidacja hasła
+  if (!userData.password || userData.password.length === 0) {
+    errors.push({ 
+      field: 'password', 
+      code: 'REQUIRED', 
+      message: 'Hasło jest wymagane' 
+    });
+  } else if (userData.password.length < 6) {
+    errors.push({ 
+      field: 'password', 
+      code: 'INVALID_LENGTH', 
+      message: 'Hasło musi mieć co najmniej 6 znaków' 
+    });
+  }
+
+  return errors;
 }
 
 // Inicjalizacja bazy danych - POPRAWIONA WERSJA
@@ -85,6 +248,15 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    service: 'Car Management System API'
+  });
+});
+
 // Publiczna strona informacyjna - PUBLIC
 app.get('/public/info', (req, res) => {
   res.json({ 
@@ -105,7 +277,12 @@ app.get('/api/public/stats', async (req, res) => {
     });
   } catch (err) {
     console.error('Błąd pobierania statystyk:', err);
-    res.status(500).json({ error: 'Błąd serwera' });
+    res.status(500).json({ 
+      timestamp: new Date().toISOString(),
+      status: 500,
+      error: 'Internal Server Error',
+      message: 'Błąd serwera'
+    });
   }
 });
 
@@ -113,14 +290,16 @@ app.get('/api/public/stats', async (req, res) => {
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { username, email, password } = req.body;
-    console.log('🔄 Próba rejestracji:', { username, email });
 
-    if (!username || !email || !password) {
-      return res.status(400).json({ error: 'Username, email and password are required' });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    // Walidacja danych
+    const validationErrors = validateUser({ username, email, password });
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        timestamp: new Date().toISOString(),
+        status: 400,
+        error: 'Bad Request',
+        fieldErrors: validationErrors
+      });
     }
 
     // Sprawdź czy użytkownik już istnieje
@@ -130,13 +309,17 @@ app.post('/api/auth/register', async (req, res) => {
     );
 
     if (userExists.rows.length > 0) {
-      return res.status(400).json({ error: 'User already exists' });
+      return res.status(409).json({
+        timestamp: new Date().toISOString(),
+        status: 409,
+        error: 'Conflict',
+        message: 'User already exists'
+      });
     }
 
     // Hashowanie hasła
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
-    console.log('🔐 Hasło zahashowane pomyślnie');
 
     // Zapisz użytkownika
     const result = await pool.query(
@@ -144,15 +327,18 @@ app.post('/api/auth/register', async (req, res) => {
       [username, email, passwordHash]
     );
 
-    console.log('✅ Użytkownik zarejestrowany:', result.rows[0]);
     res.status(201).json({
       message: 'User registered successfully',
       user: result.rows[0]
     });
   } catch (err) {
-    console.error('❌ Błąd rejestracji DETAIL:', err.message);
-    console.error('Stack trace:', err.stack);
-    res.status(500).json({ error: 'Registration error: ' + err.message });
+    console.error('❌ Błąd rejestracji:', err.message);
+    res.status(500).json({ 
+      timestamp: new Date().toISOString(),
+      status: 500,
+      error: 'Internal Server Error',
+      message: 'Registration error'
+    });
   }
 });
 
@@ -162,7 +348,12 @@ app.post('/api/auth/login', async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
+      return res.status(400).json({
+        timestamp: new Date().toISOString(),
+        status: 400,
+        error: 'Bad Request',
+        message: 'Username and password are required'
+      });
     }
 
     // Znajdź użytkownika
@@ -172,7 +363,12 @@ app.post('/api/auth/login', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({
+        timestamp: new Date().toISOString(),
+        status: 401,
+        error: 'Unauthorized',
+        message: 'Invalid credentials'
+      });
     }
 
     const user = result.rows[0];
@@ -180,7 +376,12 @@ app.post('/api/auth/login', async (req, res) => {
     // Sprawdź hasło
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({
+        timestamp: new Date().toISOString(),
+        status: 401,
+        error: 'Unauthorized', 
+        message: 'Invalid credentials'
+      });
     }
 
     // Generuj token JWT
@@ -201,7 +402,12 @@ app.post('/api/auth/login', async (req, res) => {
     });
   } catch (err) {
     console.error('Błąd logowania:', err);
-    res.status(500).json({ error: 'Błąd serwera' });
+    res.status(500).json({ 
+      timestamp: new Date().toISOString(),
+      status: 500,
+      error: 'Internal Server Error',
+      message: 'Błąd serwera'
+    });
   }
 });
 
@@ -214,7 +420,12 @@ app.get('/api/cars', authenticateToken, async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error('Błąd pobierania samochodów:', err);
-    res.status(500).json({ error: 'Błąd serwera' });
+    res.status(500).json({ 
+      timestamp: new Date().toISOString(),
+      status: 500,
+      error: 'Internal Server Error',
+      message: 'Błąd serwera'
+    });
   }
 });
 
@@ -225,13 +436,23 @@ app.get('/api/cars/:id', authenticateToken, async (req, res) => {
     const result = await pool.query('SELECT * FROM cars WHERE id = $1', [id]);
     
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Samochód nie znaleziony' });
+      return res.status(404).json({ 
+        timestamp: new Date().toISOString(),
+        status: 404,
+        error: 'Not Found',
+        message: 'Samochód nie znaleziony'
+      });
     }
     
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Błąd pobierania samochodu:', err);
-    res.status(500).json({ error: 'Błąd serwera' });
+    res.status(500).json({ 
+      timestamp: new Date().toISOString(),
+      status: 500,
+      error: 'Internal Server Error',
+      message: 'Błąd serwera'
+    });
   }
 });
 
@@ -240,10 +461,14 @@ app.post('/api/cars', authenticateToken, async (req, res) => {
   try {
     const { brand, model, year, price, registrationDate, mileage, fuelType } = req.body;
     
-    // Walidacja
-    if (!brand || !model || !year || !mileage || !fuelType) {
-      return res.status(400).json({ 
-        error: 'Marka, model, rok, przebieg i typ paliwa są wymagane' 
+    // Walidacja danych
+    const validationErrors = validateCar({ brand, model, year, price, registrationDate, mileage, fuelType });
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        timestamp: new Date().toISOString(),
+        status: 400,
+        error: 'Bad Request',
+        fieldErrors: validationErrors
       });
     }
 
@@ -260,7 +485,12 @@ app.post('/api/cars', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error('Błąd dodawania samochodu:', err);
-    res.status(500).json({ error: 'Błąd serwera' });
+    res.status(500).json({ 
+      timestamp: new Date().toISOString(),
+      status: 500,
+      error: 'Internal Server Error',
+      message: 'Błąd serwera'
+    });
   }
 });
 
@@ -269,6 +499,17 @@ app.put('/api/cars/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { brand, model, year, price, registrationDate, mileage, fuelType } = req.body;
+
+    // Walidacja danych
+    const validationErrors = validateCar({ brand, model, year, price, registrationDate, mileage, fuelType });
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        timestamp: new Date().toISOString(),
+        status: 400,
+        error: 'Bad Request',
+        fieldErrors: validationErrors
+      });
+    }
 
     const result = await pool.query(
       `UPDATE cars 
@@ -279,7 +520,12 @@ app.put('/api/cars/:id', authenticateToken, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Samochód nie znaleziony' });
+      return res.status(404).json({ 
+        timestamp: new Date().toISOString(),
+        status: 404,
+        error: 'Not Found',
+        message: 'Samochód nie znaleziony'
+      });
     }
 
     res.json({ 
@@ -288,7 +534,12 @@ app.put('/api/cars/:id', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error('Błąd aktualizacji samochodu:', err);
-    res.status(500).json({ error: 'Błąd serwera' });
+    res.status(500).json({ 
+      timestamp: new Date().toISOString(),
+      status: 500,
+      error: 'Internal Server Error',
+      message: 'Błąd serwera'
+    });
   }
 });
 
@@ -299,7 +550,12 @@ app.delete('/api/cars/:id', authenticateToken, async (req, res) => {
     const result = await pool.query('DELETE FROM cars WHERE id = $1 RETURNING *', [id]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Samochód nie znaleziony' });
+      return res.status(404).json({ 
+        timestamp: new Date().toISOString(),
+        status: 404,
+        error: 'Not Found',
+        message: 'Samochód nie znaleziony'
+      });
     }
 
     res.json({ 
@@ -308,7 +564,12 @@ app.delete('/api/cars/:id', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error('Błąd usuwania samochodu:', err);
-    res.status(500).json({ error: 'Błąd serwera' });
+    res.status(500).json({ 
+      timestamp: new Date().toISOString(),
+      status: 500,
+      error: 'Internal Server Error',
+      message: 'Błąd serwera'
+    });
   }
 });
 
@@ -320,5 +581,6 @@ initializeDatabase().then(() => {
     console.log(`🚀 Serwer działa na porcie ${PORT}`);
     console.log(`📊 Środowisko: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔐 Authentication: ENABLED`);
+    console.log(`🏥 Health check: http://localhost:${PORT}/health`);
   });
 });
