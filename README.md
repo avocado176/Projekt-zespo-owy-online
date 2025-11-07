@@ -58,7 +58,7 @@ project/
 ├── frontend/
 │   ├── index.html
 │   └── app.js
-└── README.md
+└── README.md 
 
 
 ## Autor
